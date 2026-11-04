@@ -1,0 +1,15 @@
+{
+  "kernel_versions": {
+    "bsw0610/g4swe-gold-ast": 4,
+    "bsw0610/g4swe-bm25": 3
+  },
+  "inputs": {
+    "data/raw/tasks.jsonl": "e4b3fd60f69dbc2b9213e54eeb9636db78aefe92c1d06269d73d9f5f8f3c8ad6",
+    "work/c1/gold_ast_v4/gold_ast.csv": "75a03c85496548e86c8cb0acf08dcbb8b5e4b611cd6bbe84ec9e47a5a8993b23",
+    "work/c1/bm25_v3/bm25_ranks.csv": "00575f4d5f52fe9c04b4322a6f4c886f611d9e603b1797c5474ccdde4590cec2",
+    "work/c1/gold_coverage/gold.csv": "2ed7d354465e5a1c4391007a42d13be3ed187fc9d058037e0b943f43d02743b6",
+    "kaggle/gold_ast/gold_ast.py": "a59e9de6d974905a9a3c3a95d0989aa4552765b3692343d4641277c2441bc5b4",
+    "kaggle/bm25/bm25.py": "19f37abe34f81c59ab2d6b7eecd5afac07575c01ef672067c944d2c529929c29"
+  },
+  "graphs_sha256_of_sorted_hashes": "06d0752a022bbddeb7f1500bbff3f51867d1f18a0fbf7c2d9861ee14533584a7"
+}

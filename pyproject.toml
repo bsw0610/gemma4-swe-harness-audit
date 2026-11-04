@@ -1,0 +1,20 @@
+[project]
+name = "gemma4-swe-graphs"
+version = "0.1.0"
+description = "Audit of the Gemma 4 Developer Agent harness: tools, a localisation skill and context overflow"
+requires-python = ">=3.12"
+dependencies = [
+    "duckdb>=1.5.5",
+    "ipykernel>=6.29",
+    "matplotlib>=3.11.2",
+    "nbconvert>=7.16",
+    "nbformat>=5.10",
+    "pandas>=3.0.6",
+    "pyarrow>=25.0.1",
+    "scikit-learn>=1.9.1",
+    "scipy>=1.18.1",
+    "statsmodels>=0.15.0",
+]
+
+[tool.uv]
+package = false

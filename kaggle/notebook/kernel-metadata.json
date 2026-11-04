@@ -1,0 +1,13 @@
+{
+  "id": "bsw0610/what-limits-a-small-model-swe-agent-reproduction",
+  "title": "What Limits a Small-Model SWE Agent? Reproduction",
+  "code_file": "notebook.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": false,
+  "enable_gpu": false,
+  "enable_internet": false,
+  "dataset_sources": ["metric/gemma-4-developer-agent-wheelhouse"],
+  "competition_sources": ["gemma-4-developer-agent"],
+  "kernel_sources": []
+}
