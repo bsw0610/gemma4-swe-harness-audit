@@ -29,9 +29,9 @@ These work outside this paper, and the three scripts use only the Python standar
 | Resource | What it does | Needs |
 |---|---|---|
 | `skill/localize-code/` | Ranks a Python repository's functions and classes against issue text (BM25 over `ast` spans) and prints the top symbols and files in under 4,000 characters. Copy the folder into a submission's `skills/`. | Any Python repository |
-| `analysis/gold_core.py` | Maps each changed line of a unified diff to the innermost enclosing `def` or `class` of the base file, so localisation can be scored by symbol. | The patch and the base file |
+| `analysis/gold_core.py` | Maps the changed lines of a Python unified diff to the innermost enclosing `def` or `class` of the base file, or to module scope, so localisation can be scored by symbol. Blank-line changes outside strings are skipped. | The patch and the base file |
 | `analysis/trace_metrics.py` | Reads one harness trace and reports when the agent first mentioned, read, displayed the lines of and edited a gold file, and whether it called the skill. | A trace and `tasks.jsonl`; tested on traces from `swegemma` 0.2.7 |
-| `results/c3_run_rows.csv` | Outcomes and token counts for 320 runs of the reference agent without its LoRA adapter and sub-agent (120 tasks in two arms, 40 of them repeated), to compare your own agent against. Trace metrics cover the first repetition. | Nothing |
+| `results/c3_run_rows.csv` | Outcomes for 320 runs of the reference agent without its LoRA adapter and sub-agent (120 tasks in two arms, 40 of them repeated), to compare your own agent against. Token counts and trace metrics cover the first repetition. | Nothing |
 
 ```bash
 # Rank a repository's functions and classes against an issue
