@@ -22,6 +22,45 @@ Reproduction notebook: https://www.kaggle.com/code/bsw0610/what-limits-a-small-m
 
 Details and limits are in `reports/`, starting with `reports/harness_0_2_11_recheck.md`.
 
+## Reusable resources
+
+These work outside this paper, and the three scripts use only the Python standard library.
+
+| Resource | What it does | Needs |
+|---|---|---|
+| `skill/localize-code/` | Ranks a Python repository's functions and classes against issue text (BM25 over `ast` spans) and prints the top symbols and files in under 4,000 characters. Copy the folder into a submission's `skills/`. | Any Python repository |
+| `analysis/gold_core.py` | Maps each changed line of a unified diff to the innermost enclosing `def` or `class` of the base file, so localisation can be scored by symbol. | The patch and the base file |
+| `analysis/trace_metrics.py` | Reads one harness trace and reports when the agent first mentioned, read, displayed the lines of and edited a gold file, and whether it called the skill. | A trace and `tasks.jsonl`; tested on traces from `swegemma` 0.2.7 |
+| `results/c3_run_rows.csv` | Outcomes and token counts for 320 runs of the reference agent without its LoRA adapter and sub-agent (120 tasks in two arms, 40 of them repeated), to compare your own agent against. Trace metrics cover the first repetition. | Nothing |
+
+```bash
+# Rank a repository's functions and classes against an issue
+python3 skill/localize-code/scripts/localize.py --root /path/to/repo "issue text"
+```
+
+```bash
+# Measure one run
+python3 analysis/trace_metrics.py trace_<id>.json <id> data/raw/tasks.jsonl
+```
+
+```bash
+# Run the gold rule's regression cases
+python3 analysis/test_gold_core.py
+```
+
+```python
+import sys; sys.path.insert(0, "analysis")
+from gold_core import parse_patch, attribute
+
+hunks = parse_patch(patch)["pkg/mod.py"]
+list(attribute(hunks, base_source))  # [(0, 'A.f', 'def', 3, 'replace')]: hunk, symbol, kind, line, block type
+```
+
+Evidence and limits:
+- **Skill.** Offline, an in-graph gold symbol is in its top 15 for 51.3% of 115 tasks. The reference agent did not call it in 8 runs, so check your own traces to see whether your agent does.
+- **Gold rule.** 14 regression cases, and a mutation test on all 129 snapshots (`kaggle/gold_mutation/`) attributes 1,821 of 1,821 synthetic patches correctly.
+- **Trace metrics.** They measure access, not understanding, and do not parse shell output beyond checking that it is non-empty.
+
 ## Layout
 
 | Path | Contents |
