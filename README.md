@@ -75,7 +75,7 @@ Evidence and limits:
 
 ## Reproduce
 
-The notebook recomputes the paper's tables and Figure 1 on a Kaggle CPU from the competition files. It takes about 36 minutes. Attach the competition and [the wheelhouse dataset](https://www.kaggle.com/datasets/metric/gemma-4-developer-agent-wheelhouse), and run it.
+The notebook recomputes the paper's tables and Figure 1 on a Kaggle CPU from the competition files. It takes under 40 minutes. Attach the competition and [the wheelhouse dataset](https://www.kaggle.com/datasets/metric/gemma-4-developer-agent-wheelhouse), and run it.
 
 To work locally, join the competition and download its data into `data/raw/`. The snapshots stages run only on Kaggle.
 
