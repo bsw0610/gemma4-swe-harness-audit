@@ -19,7 +19,7 @@ else:
 W = str(Path(tempfile.gettempdir()) / "g4swe")
 WORK = Path(W)
 shutil.rmtree(WORK, ignore_errors=True)
-for d in ("analysis", "kaggle/gold_ast", "kaggle/bm25", "kaggle/gold_mutation", "kaggle/skill_eval", "results", "reports", "data", "work/c1", "work/c2"):
+for d in ("analysis", "kaggle/gold_ast", "kaggle/bm25", "kaggle/gold_mutation", "kaggle/skill_eval", "kaggle/unjudgeable", "results", "reports", "data", "work/c1", "work/c2"):
     (WORK / d).mkdir(parents=True)
 (WORK / "data/raw").symlink_to(INPUT, target_is_directory=True)
 FINAL = Path("/kaggle/working") if ON_KAGGLE else WORK / "final"
@@ -205,6 +205,29 @@ print(repo.to_string())
 rep2 = c3[(c3.rep == 2)].groupby("arm").overflow.sum().to_dict()
 twice = set(c3[(c3.rep == 1) & (c3.arm == "base") & c3.overflow].task) & set(c3[(c3.rep == 2) & (c3.arm == "base") & c3.overflow].task)
 print("repetition 2 overflows:", rep2, "| tasks overflowing in both base runs:", len(twice))
+
+# ===== CELL: c3_judgeable =====
+un = pd.read_csv(WORK / "results/c3_unjudgeable_tasks.csv")
+check("unjudgeable tasks by cause", un.reason.value_counts().to_dict(), {"test_module": 31, "httpbin_fixture": 8, "test_module_masked": 1})
+unj = c3[c3.task.isin(un.task)]
+check("runs on unjudgeable tasks, resolved among them", (len(unj), int(unj.resolved.sum())), (112, 0))
+kernel("unjudgeable/unjudgeable.py", "work/c3/unjudgeable", ["unjudgeable_static.csv"])
+static = pd.read_csv(WORK / "work/c3/unjudgeable/unjudgeable_static.csv")
+flagged = set(static.task) & set(c3.task)
+check("static check on C3 tasks: flagged, missed from the list, flagged but not listed", (len(flagged), len(set(un.task) - flagged), len(flagged - set(un.task))), (40, 0, 0))
+judgeable = wide["base"].index.difference(un.task)
+check("judgeable tasks", len(judgeable), 80)
+check("resolved on judgeable tasks, base, out8k", (int(wide["base"].loc[judgeable].resolved.sum()), int(wide["out8k"].loc[judgeable].resolved.sum())), (29, 34))
+print(f"resolved rate on judgeable tasks: base {29 / 80:.1%}, out8k {34 / 80:.1%}")
+over_j = over.intersection(judgeable)
+o8j = wide["out8k"].loc[over_j]
+check("base overflows on judgeable tasks", len(over_j), 15)
+check("out8k on those: resolved, timeout, failing patch", (int(o8j.resolved.sum()), int(o8j.timeout.sum()), int((~o8j.resolved & ~o8j.timeout & ~o8j.tool_budget & ~o8j.empty_patch).sum())), (2, 2, 11))
+rest = judgeable.difference(over)
+check("judgeable tasks without a base overflow, out8k resolved", (len(rest), int(wide["out8k"].loc[rest].resolved.sum())), (65, 32))
+check("gold edit before overflow: unjudgeable, judgeable, out8k resolved on judgeable", (len(lost.intersection(un.task)), len(lost.intersection(judgeable)), int(wide["out8k"].loc[lost.intersection(judgeable)].resolved.sum())), (8, 2, 0))
+run(["analysis/c3_report.py", "results/c3_run_rows.csv", "base", "out8k", "--exclude", ",".join(un.task)], drop="^run dir")
+run(["analysis/c3_report.py", "results/c3_run_rows.csv", "base", "out8k", "--exclude", ",".join([*un.task, "fastapi_14851"])], drop="^run dir|^repeatab|^  |^seconds|^tool_calls|^first_|^edit_arg|^$|^timeout|^tool_budget|^other_error|^empty_patch|^gold_edit|^overflow")
 
 # ===== CELL: c3_figure =====
 from IPython.display import Image

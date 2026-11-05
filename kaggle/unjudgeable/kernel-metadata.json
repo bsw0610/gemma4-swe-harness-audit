@@ -1,0 +1,15 @@
+{
+  "id": "bsw0610/g4swe-unjudgeable",
+  "title": "g4swe unjudgeable",
+  "code_file": "unjudgeable.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_internet": false,
+  "dataset_sources": [],
+  "competition_sources": [
+    "gemma-4-developer-agent"
+  ],
+  "kernel_sources": []
+}

@@ -22,8 +22,9 @@ for name, src in zip(parts[1::2], parts[2::2]):
 # target inside the scratch folder -> repository file
 EMBED = {f"analysis/{n}.py": f"analysis/{n}.py" for n in ("gold_core", "c1_report", "gold_heuristic", "embed_geometry", "reach", "reach_0211", "skill_eval",
                                                           "trace_metrics", "c3_report", "c3_fig_prompt", "c3_overflow_edits")}
-EMBED |= {f"kaggle/{d}/{n}.py": f"kaggle/{d}/{n}.py" for d, n in (("gold_ast", "gold_ast"), ("bm25", "bm25"), ("gold_mutation", "gold_mutation"), ("skill_eval", "skill_eval"))}
+EMBED |= {f"kaggle/{d}/{n}.py": f"kaggle/{d}/{n}.py" for d, n in (("gold_ast", "gold_ast"), ("bm25", "bm25"), ("gold_mutation", "gold_mutation"), ("skill_eval", "skill_eval"), ("unjudgeable", "unjudgeable"))}
 EMBED["results/c3_run_rows.csv"] = "results/c3_run_rows.csv"
+EMBED["results/c3_unjudgeable_tasks.csv"] = "results/c3_unjudgeable_tasks.csv"
 SOURCES = {t: hashlib.sha256((ROOT / s).read_bytes()).hexdigest() for t, s in EMBED.items()}
 
 MD = {}
@@ -36,7 +37,7 @@ Writeup: https://www.kaggle.com/competitions/gemma-4-developer-agent-paper/write
 **TL;DR**
 - **C1.** In `swegemma` 0.2.7 the documented short-name resolver did not exist. Release 0.2.11 added it, and reach from the issue text rose, but BM25 still leads every shipped graph policy at k = 50. The tools search the whole graph and BM25 ranks spans outside tests and docs, so this compares the tools as shipped, not ranking methods on one corpus.
 - **C2.** The offline skill puts an in-graph gold symbol in its default top-15 list for about half of the tasks. Two undocumented harness rules break skills until they are handled.
-- **C3.** With `max_output_tokens` 16,384, about one run in five ends in a context-window error. Halving it removes these errors, but the gain in resolved tasks is small and cannot be told apart from run-to-run variation.
+- **C3.** With `max_output_tokens` 16,384, about one run in five ends in a context-window error. Halving it removes these errors. The gain in resolved tasks cannot be told apart from run-to-run variation, and missing test dependencies blocked verification of 40 of the 120 tasks in our sandbox.
 """
 MD["bounds"] = """## Definitions and boundaries
 
@@ -49,10 +50,11 @@ MD["bounds"] = """## Definitions and boundaries
 | Trace events | A file read or edit counts only if the tool call succeeded | Failed calls are not access |
 | C3 tasks | Positions 6-125 of a seed-0 random order of the 125 tasks with an existing gold code file | The first 5 were the pilot and informed the design |
 | C3 arms | `base`: reference agent without LoRA adapter and sub-agent, `max_output_tokens` 16,384. `out8k`: the same with 8,192 | One value changed |
+| C3 judgeable tasks | 80 of 120: those without an identified test-dependency blocker in the subprocess sandbox | That sandbox skips test dependencies, which blocks verification of the other 40. Found after the runs, not fixed in advance |
 | C3 budgets | 100 tool calls, 300 s per command, 500 turns, 30 minutes, compaction interval 5 | Interval as in the README at the time; the current README lists 15 |
 | Statistics | Unit = task; 95% CI = task bootstrap, 10,000 draws, seed 0; McNemar exact for paired binary outcomes | Tasks are the sampling unit |
 
-**What this notebook does not recompute.** The C3 GPU runs (one A100 in Colab, 320 runs): their metrics are read from `results/c3_run_rows.csv`, embedded below, which holds no issue text, code or patches. Also the pilot's counts (0 of 8 runs called the skill; traces are not published, see `analysis/c2_pilot_summary.py`), the skill's per-task run time, and the mock-model test of the overflow path, which needs the harness and ADK wheels (`analysis/test_overflow_salvage.py` in the repository).
+**What this notebook does not recompute.** The C3 GPU runs (one A100 in Colab, 320 runs): their metrics are read from `results/c3_run_rows.csv`, embedded below, which holds no issue text, code or patches. The list of unjudgeable tasks, `results/c3_unjudgeable_tasks.csv`, came from those runs' test output, which is not published; a check below compares it with the snapshots and test patches. Also the pilot's counts (0 of 8 runs called the skill; traces are not published, see `analysis/c2_pilot_summary.py`), the skill's per-task run time, and the mock-model test of the overflow path, which needs the harness and ADK wheels (`analysis/test_overflow_salvage.py` in the repository).
 """
 MD["sources_note"] = """## Scripts
 
@@ -98,11 +100,15 @@ MD["c3"] = """## C3. Context overflow
 
 vLLM rejects a request when prompt tokens plus `max_output_tokens` exceed 32,768. With 16,384 reserved, the prompt ceiling is 16,384, and the compaction threshold of 14,336 leaves 2,048 tokens of headroom. One large tool response can jump over it.
 
-The first block below is Table 3 of the paper; the second block is the repetition on 40 tasks.
+The first block below holds the counts behind Table 3 of the paper; the second block is the repetition on 40 tasks.
 """
-MD["c3_read"] = """**Reading.** The fix removes the failure it targets, but the effect on resolved tasks is small. Its confidence interval includes zero, and the arms disagree with each other about as often as an arm disagrees with itself on a second run. On most tasks whose paired base run overflowed, the separate out8k run ended in a failing patch.
+MD["c3_judge"] = """### Judgeable tasks
 
-That is a task-level observation. It does not show whether the discarded base edits were correct, and the data cannot separate it from task difficulty.
+`swegemma` skips `install_test_dependencies` in the subprocess sandbox, and verification needs pytest exit code 0. So test dependencies block verification of 40 of the 120 tasks there: `inline_snapshot` and `dirty_equals` are missing for 32 fastapi tasks, and the `httpbin` fixture is broken for 8 requests tasks. We found this after the runs. Whether the scoring image has these packages was not checked. The cell below checks the list against the snapshots, then repeats the paired table without these tasks. Overflow, patch and budget outcomes describe the agent and do not depend on verification, so the 120-task counts above still hold for them.
+"""
+MD["c3_read"] = """**Reading.** The fix removes the failure it targets. On the 80 judgeable tasks the difference in resolved tasks has a confidence interval that includes zero, and the arms disagree with each other about as often as an arm disagrees with itself on a second run. On most judgeable tasks whose paired base run overflowed, the separate out8k run failed, but that is a task-level observation the data cannot separate from task difficulty.
+
+Most base runs that edited a gold file before overflowing are on unjudgeable tasks, so these data cannot show whether discarded edits were correct.
 """
 MD["c3_fig"] = """### Figure 1
 
@@ -117,7 +123,7 @@ MD["credits"] = """## Sources, licenses and limits
 - **Competition data.** [Google - The Gemma 4 Developer Agent](https://www.kaggle.com/competitions/gemma-4-developer-agent): tasks, graphs, embeddings and snapshots, read in place under the competition rules. Section 4.b restricts redistribution of competition data, so the only output file is Figure 1. Aggregate results appear in the cell outputs; issue text, code and patches do not.
 - **Harness wheel.** `swegemma` 0.2.11 from the [wheelhouse dataset](https://www.kaggle.com/datasets/metric/gemma-4-developer-agent-wheelhouse), checked by digest.
 - **This notebook's code.** Apache 2.0.
-- **Environment limits.** C3 ran on one A100 (tensor parallel 1), not the scoring setup, with a 30-minute budget. "Resolved" means the official `swegemma` verification in that environment, so official scores can differ on individual tasks.
+- **Environment limits.** C3 ran on one A100 (tensor parallel 1), not the scoring setup, with a 30-minute budget. "Resolved" means the official `swegemma` verification in that environment, so official scores can differ. Missing test dependencies blocked verification of 40 of the 120 tasks there (see C3).
 - **Scope.** Four public repositories, with fastapi and rich dominating; the hidden test set uses private repositories. Results describe associations in this setup. They do not establish why particular runs fail.
 
 Independent work; not affiliated with or endorsed by Google or Kaggle.
@@ -127,12 +133,14 @@ Independent work; not affiliated with or endorsed by Google or Kaggle.
 | Check | Before | After | Reason |
 |---|---|---|---|
 | Gold file edited before overflow, base (no check existed; now in `c3_tables`) | 12, out8k resolved 1 on those tasks | 10, out8k resolved 0 | Count successful tool calls only, after a read-only audit |
+
+The judgeable-task checks in `c3_judgeable` were added later. No earlier expected value changed: the 120-task counts are the same rows, read with a new denominator for resolved.
 """
 
 ORDER = [("md", "title"), ("md", "bounds"), ("code", "path"), ("md", "sources_note"), ("embed", ""), ("code", "verify_sources"),
          ("md", "c1_facts"), ("code", "graph_facts"), ("md", "c1_gold"), ("code", "gold_stage"), ("md", "c1_mut"), ("code", "mutation_stage"),
          ("md", "c1_report"), ("code", "c1_report"), ("md", "c1_embed"), ("code", "embed_stage"), ("md", "c1_reach"), ("code", "reach_stage"), ("code", "table1"), ("md", "c1_read"),
-         ("md", "c1_gate"), ("code", "gate"), ("md", "c2"), ("code", "c2_stage"), ("md", "c3"), ("code", "c3_tables"), ("md", "c3_read"),
+         ("md", "c1_gate"), ("code", "gate"), ("md", "c2"), ("code", "c2_stage"), ("md", "c3"), ("code", "c3_tables"), ("md", "c3_judge"), ("code", "c3_judgeable"), ("md", "c3_read"),
          ("md", "c3_fig"), ("code", "c3_figure"), ("md", "c3_edits"), ("code", "c3_edits"), ("code", "closing"), ("md", "credits")]
 
 

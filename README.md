@@ -18,7 +18,7 @@ Reproduction notebook: https://www.kaggle.com/code/bsw0610/what-limits-a-small-m
 
 **C2. A localisation skill.** `skill/localize-code/` uses only the standard library and reaches an in-graph gold symbol in its default top 15 for 51.3% of tasks offline (95% CI [42.6, 60.0], n = 115). The reference agent never called it in 8 runs, and its first successful read of a gold file came within a few tool calls.
 
-**C3. Context overflow.** On 120 tasks with `swegemma` 0.2.7, the default `max_output_tokens` of 16,384 ended 26 runs in a context-window error. Halving it removed all of them, but resolved tasks rose only from 29 to 34 (+4.2 pp, 95% CI [−0.8, +9.2]). Release 0.2.11 submits work in progress when a run overflows; we did not re-run the experiment on it.
+**C3. Context overflow.** On 120 tasks with `swegemma` 0.2.7, the default `max_output_tokens` of 16,384 ended 26 runs in a context-window error. Halving it removed all of them, and resolved tasks rose from 29 to 34 of the 80 tasks not blocked by missing test dependencies (+6.2 pp, 95% CI [−1.3, +13.8]). The subprocess sandbox skips test dependencies, which blocks verification of the other 40 tasks there. Whether the scoring image has those packages was not checked. Release 0.2.11 submits work in progress when a run overflows; we did not re-run the experiment on it.
 
 Details and limits are in `reports/`, starting with `reports/harness_0_2_11_recheck.md`.
 
@@ -31,7 +31,7 @@ These work outside this paper, and the three scripts use only the Python standar
 | `skill/localize-code/` | Ranks a Python repository's functions and classes against issue text (BM25 over `ast` spans) and prints the top symbols and files in under 4,000 characters. Copy the folder into a submission's `skills/`. | Any Python repository |
 | `analysis/gold_core.py` | Maps the changed lines of a Python unified diff to the innermost enclosing `def` or `class` of the base file, or to module scope, so localisation can be scored by symbol. Change blocks holding only blank lines, outside strings, are skipped. | The patch and the base file |
 | `analysis/trace_metrics.py` | Reads one harness trace and reports when the agent first mentioned, read, displayed the lines of and edited a gold file, and whether it called the skill. | A trace and `tasks.jsonl`; tested on traces from `swegemma` 0.2.7 |
-| `results/c3_run_rows.csv` | Outcomes for 320 runs of the reference agent without its LoRA adapter and sub-agent (120 tasks in two arms, 40 of them repeated), to compare your own agent against. Token counts and trace metrics cover the first repetition. | Nothing |
+| `results/c3_run_rows.csv` | Outcomes for 320 runs of the reference agent without its LoRA adapter and sub-agent (120 tasks in two arms, 40 of them repeated), to compare your own agent against. Token counts and trace metrics cover the first repetition. Leave out the 40 tasks in `results/c3_unjudgeable_tasks.csv` when you compare resolved rates. | Nothing |
 
 ```bash
 # Rank a repository's functions and classes against an issue
@@ -71,6 +71,7 @@ Evidence and limits:
 | `colab/` | C3 experiment runner (GPU) |
 | `skill/localize-code/` | The skill, ready to drop into a submission's `skills/` folder |
 | `results/c3_run_rows.csv` | One row per C3 run: outcomes and token counts, with no issue text, code or patches |
+| `results/c3_unjudgeable_tasks.csv` | The 40 C3 tasks whose verification is blocked by missing test dependencies in the subprocess sandbox, with the cause |
 | `reports/` | Results for each contribution |
 
 ## Reproduce
@@ -91,7 +92,7 @@ The GPU runs are not bit-reproducible, and `reports/c3_results.md` measures how 
 
 ## Data
 
-The competition rules restrict redistribution of competition data (section 4.b). This repository bundles no raw competition files, issue text, source snapshots or patches. It does include aggregate results and per-run metrics of our own runs (`results/c3_run_rows.csv`). Scripts rebuild the task-level tables from the competition files.
+The competition rules restrict redistribution of competition data (section 4.b). This repository bundles no raw competition files, issue text, source snapshots or patches. It does include aggregate results and per-run metrics of our own runs (`results/c3_run_rows.csv`, `results/c3_unjudgeable_tasks.csv`). Scripts rebuild the task-level tables from the competition files.
 
 ## License
 

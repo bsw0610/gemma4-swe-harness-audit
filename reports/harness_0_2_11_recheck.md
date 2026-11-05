@@ -79,6 +79,6 @@ work/harness_0_2_11/rt/venv_0.2.11/bin/python -I analysis/test_overflow_salvage.
 `c3_overflow_edits.py` runs in the project env: `uv run python analysis/c3_overflow_edits.py`.
 
 ## What is not known
-- **Resolved rate under 0.2.11.** Not re-run. Recoverable patches and their outcomes are unmeasured. The separate out8k runs resolved 0 of the 10 tasks with a gold-file edit, which says little about what the recovered edits would have done.
+- **Resolved rate under 0.2.11.** Not re-run. Recoverable patches and their outcomes are unmeasured. Of the 10 tasks with a gold-file edit, 8 have verification blocked by missing test dependencies in the subprocess sandbox (`c3_results.md`, "Judgeable tasks"), and the separate out8k runs resolved neither of the other 2, so this says nothing about what the recovered edits would have done.
 - **Overflow rate under 0.2.11.** The token arithmetic is unchanged, but the reshaped workspace tree (pruned of docs and tests, up to 200 entries instead of 150) and any change in compaction interval could shift the rate. The README's interval 15 was used only in our pilot (4 of 10 runs overflowed).
 - **Whether the embedding files are byte-identical.** Sizes match; hashes were not compared. The graphs are confirmed identical by hash.
